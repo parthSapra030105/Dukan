@@ -5,6 +5,7 @@ import { getDemoMerchantId } from '@/lib/merchant'
 import { NavLinks } from './nav-links'
 import { BrandMark } from './brand-mark'
 import { LogoutButton } from './logout-button'
+import { NavRealtime } from './nav-realtime'
 
 interface NavProps {
   userEmail?: string | null
@@ -50,6 +51,7 @@ export async function Nav({ userEmail = null }: NavProps = {}) {
 
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-stone-200">
+      <NavRealtime />
       <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
         <div className="flex items-center gap-8">
           <Link href="/dashboard" aria-label="Dukan home">

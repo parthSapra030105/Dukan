@@ -51,7 +51,7 @@ export async function POST(request: Request) {
   const query = queryRaw.toLowerCase()
   const tokens = tokenize(queryRaw)
 
-  console.log('[catalog_search]', { query: queryRaw, tokens })
+  console.log(`[catalog_search] query="${queryRaw}" lang=${language} tokens=[${tokens.join(', ')}]`)
 
   const supabase = getSupabaseAdmin()
   const merchantId = await getDemoMerchantId()
@@ -102,16 +102,51 @@ export async function POST(request: Request) {
     }
   }
 
-  // 3) Per-token name_default ILIKE — recall pass
+  // 3) Per-token name_default ILIKE — English recall
   for (const t of tokens) {
     if (results.size >= limit) break
-    if (t.length < 3) continue
+    if (t.length < 2) continue
     const { data } = await supabase
       .from('catalog_items')
       .select(cols)
       .eq('merchant_id', merchantId)
       .eq('active', true)
       .ilike('name_default', `%${t}%`)
+      .limit(limit)
+    for (const r of (data as Row[] | null) ?? []) {
+      if (!results.has(r.sku)) results.set(r.sku, r)
+    }
+  }
+
+  // 4) Per-token name_localized->>hi ILIKE — Devanagari recall
+  //    Critical: Deepgram transcribes Hindi speech as Devanagari, so the LLM
+  //    passes things like "आलू" or "टमाटर" here. Without this pass we'd 0-result
+  //    every Hindi customer query.
+  for (const t of tokens) {
+    if (results.size >= limit) break
+    if (t.length < 2) continue
+    const { data } = await supabase
+      .from('catalog_items')
+      .select(cols)
+      .eq('merchant_id', merchantId)
+      .eq('active', true)
+      .ilike('name_localized->>hi', `%${t}%`)
+      .limit(limit)
+    for (const r of (data as Row[] | null) ?? []) {
+      if (!results.has(r.sku)) results.set(r.sku, r)
+    }
+  }
+
+  // 5) Per-token name_localized->>en ILIKE — secondary English recall
+  for (const t of tokens) {
+    if (results.size >= limit) break
+    if (t.length < 2) continue
+    const { data } = await supabase
+      .from('catalog_items')
+      .select(cols)
+      .eq('merchant_id', merchantId)
+      .eq('active', true)
+      .ilike('name_localized->>en', `%${t}%`)
       .limit(limit)
     for (const r of (data as Row[] | null) ?? []) {
       if (!results.has(r.sku)) results.set(r.sku, r)
