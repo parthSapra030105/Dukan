@@ -9,6 +9,7 @@ import { type OrderCardData } from '@/components/order-card'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { getDemoMerchantId } from '@/lib/merchant'
 import { formatRupees, formatDuration } from '@/lib/format'
+import { firstCustomerLine } from '@/lib/transcript'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 
@@ -24,20 +25,7 @@ function startOfTodayIsoUTC(): string {
   return new Date(istNow.getTime() - istOffsetMs).toISOString()
 }
 
-function extractCustomerSnippet(transcript: unknown): string | null {
-  if (!transcript) return null
-  // Bolna stores transcript as a single multi-line string with "assistant:" and "user:" prefixes
-  if (typeof transcript === 'string') {
-    const userLines = transcript
-      .split('\n')
-      .map(l => l.trim())
-      .filter(l => l.startsWith('user:'))
-      .map(l => l.replace(/^user:\s*/, ''))
-      .filter(Boolean)
-    return userLines[0] ?? null
-  }
-  return null
-}
+// Use the shared transcript normaliser.
 
 export default async function DashboardPage() {
   const supabase = getSupabaseAdmin()
@@ -119,7 +107,7 @@ export default async function DashboardPage() {
       created_at: o.created_at,
       customer_name: c?.name ?? null,
       customer_phone: c?.phone ?? null,
-      customer_snippet: extractCustomerSnippet(call?.transcript ?? null),
+      customer_snippet: firstCustomerLine(call?.transcript),
     }
   })
 

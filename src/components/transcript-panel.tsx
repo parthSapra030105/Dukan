@@ -1,34 +1,18 @@
 import { Bot, User } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { normaliseTranscript, type Turn } from '@/lib/transcript'
 
 interface TranscriptPanelProps {
-  /** Raw transcript from Bolna — multi-line, "assistant: ..." / "user: ..." */
-  transcript: string | null
+  /** Raw transcript from Bolna — string, array, null, or object. */
+  transcript: unknown
   /** Compact mode used in popovers. */
   compact?: boolean
 }
 
-interface Turn {
-  speaker: 'agent' | 'customer'
-  text: string
-}
-
-function parseTranscript(raw: string): Turn[] {
-  return raw
-    .split('\n')
-    .map(l => l.trim())
-    .filter(Boolean)
-    .map(line => {
-      if (line.startsWith('assistant:')) return { speaker: 'agent' as const, text: line.slice('assistant:'.length).trim() }
-      if (line.startsWith('user:')) return { speaker: 'customer' as const, text: line.slice('user:'.length).trim() }
-      // Unknown prefix — drop
-      return null
-    })
-    .filter((t): t is Turn => t !== null && t.text.length > 0)
-}
-
 export function TranscriptPanel({ transcript, compact }: TranscriptPanelProps) {
-  if (!transcript) {
+  const turns = normaliseTranscript(transcript)
+
+  if (turns.length === 0) {
     return (
       <div className="bg-stone-50 border border-stone-200 rounded-lg p-6 text-center">
         <p className="text-sm text-stone-700 font-medium mb-1">No transcript</p>
@@ -39,25 +23,16 @@ export function TranscriptPanel({ transcript, compact }: TranscriptPanelProps) {
     )
   }
 
-  const turns = parseTranscript(transcript)
-  if (turns.length === 0) {
-    return (
-      <div className="bg-stone-50 border border-stone-200 rounded-lg p-6 text-center text-xs text-stone-500">
-        Transcript was empty.
-      </div>
-    )
-  }
-
   return (
     <div className={cn('space-y-3', compact && 'space-y-2')}>
       {turns.map((turn, i) => (
-        <Turn key={i} turn={turn} compact={compact} />
+        <TurnRow key={i} turn={turn} compact={compact} />
       ))}
     </div>
   )
 }
 
-function Turn({ turn, compact }: { turn: Turn; compact?: boolean }) {
+function TurnRow({ turn, compact }: { turn: Turn; compact?: boolean }) {
   const isAgent = turn.speaker === 'agent'
   const Icon = isAgent ? Bot : User
   return (

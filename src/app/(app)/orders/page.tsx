@@ -5,6 +5,7 @@ import { type OrderCardData } from '@/components/order-card'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { getDemoMerchantId } from '@/lib/merchant'
 import { formatRupees } from '@/lib/format'
+import { firstCustomerLine } from '@/lib/transcript'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -17,16 +18,8 @@ const STATUSES = [
   { key: 'cancelled',  label: 'Cancelled' },
 ]
 
-function extractCustomerSnippet(transcript: unknown): string | null {
-  if (!transcript || typeof transcript !== 'string') return null
-  const userLines = transcript
-    .split('\n')
-    .map(l => l.trim())
-    .filter(l => l.startsWith('user:'))
-    .map(l => l.replace(/^user:\s*/, ''))
-    .filter(Boolean)
-  return userLines[0] ?? null
-}
+// Use the shared normaliser — Bolna stores transcripts as either a multi-line
+// string OR an array of {role, content} objects depending on call mode.
 
 function startOfTodayIstIso(): string {
   const now = new Date()
@@ -101,7 +94,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
       created_at: o.created_at,
       customer_name: c?.name ?? null,
       customer_phone: c?.phone ?? null,
-      customer_snippet: extractCustomerSnippet(call?.transcript ?? null),
+      customer_snippet: firstCustomerLine(call?.transcript),
     }
   })
 

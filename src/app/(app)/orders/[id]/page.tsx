@@ -209,7 +209,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
               title="Transcript"
               right={call?.language_detected ? <span>Lang · {call.language_detected}</span> : null}
             />
-            <TranscriptPanel transcript={call?.transcript ?? null} />
+            <TranscriptPanel transcript={call?.transcript as unknown} />
           </section>
         </div>
       </div>
