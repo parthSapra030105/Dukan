@@ -1,6 +1,7 @@
 import { Package } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { formatRupees } from '@/lib/format'
+import { ProductQuickActions } from './product-quick-actions'
 
 const CATEGORY_TINT: Record<string, string> = {
   staples:         'bg-amber-50 text-amber-800 ring-amber-100',
@@ -146,6 +147,14 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         </div>
       )}
+
+      <div className="mt-3 pt-3 border-t border-stone-100">
+        <ProductQuickActions
+          productId={product.id}
+          active={product.active}
+          stockCount={product.stock_count}
+        />
+      </div>
     </div>
   )
 }
