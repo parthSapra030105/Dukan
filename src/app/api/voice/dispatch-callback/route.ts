@@ -69,7 +69,8 @@ export async function POST(request: Request) {
       agentId,
       to: phone,
       customerContext: {
-        callback_request_id: callRow.id,
+        call_id: callRow.id,                   // internal Dukan call row id (used by escalate_to_human)
+        caller_phone: phone,                   // templated into lookup_customer
         merchant_id: merchantId,
         customer_name: parsed.name ?? null,
         preferred_language: parsed.language ?? 'hi-IN',

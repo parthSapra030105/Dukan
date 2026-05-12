@@ -34,7 +34,21 @@ export async function POST(request: Request) {
   const v = await verifyToolCall(request)
   if (!v.ok) return v.response
 
-  const items = Array.isArray(v.body.items) ? (v.body.items as OrderItem[]) : []
+  // Accept items as a real array OR a JSON string (Bolna may send templated strings).
+  let items: OrderItem[] = []
+  if (Array.isArray(v.body.items)) {
+    items = v.body.items as OrderItem[]
+  } else if (typeof v.body.items === 'string') {
+    try {
+      const parsed = JSON.parse(v.body.items)
+      if (Array.isArray(parsed)) items = parsed as OrderItem[]
+    } catch {
+      return NextResponse.json(
+        { error: 'items_not_valid_json', detail: String(v.body.items).slice(0, 200) },
+        { status: 400 },
+      )
+    }
+  }
   if (items.length === 0) {
     return NextResponse.json({ error: 'items_required' }, { status: 400 })
   }

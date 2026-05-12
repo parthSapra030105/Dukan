@@ -49,8 +49,8 @@ export async function POST(request: Request) {
   }
   if (!callRowId) {
     const userData = raw.user_data as Record<string, unknown> | undefined
-    const callbackRequestId = userData?.callback_request_id
-    if (typeof callbackRequestId === 'string') callRowId = callbackRequestId
+    const explicitCallId = userData?.call_id ?? userData?.callback_request_id
+    if (typeof explicitCallId === 'string') callRowId = explicitCallId
   }
   if (!callRowId) {
     // We've never seen this call. Create a row so we don't lose the data.

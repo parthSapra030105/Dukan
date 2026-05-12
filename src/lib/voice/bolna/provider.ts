@@ -181,7 +181,14 @@ export class BolnaProvider implements VoiceProvider {
   // -------------------------------------------------------------------------
 
   private buildAgentPayload(config: AgentConfig): Record<string, unknown> {
-    // Bolna's verified schema: { agent_config: { tasks: [...], ... }, agent_prompts: {...} }
+    // Bolna's verified schema (corrected after first 400):
+    //   agent_config: { tasks: [{ task_type, toolchain, tools_config, task_config }], ... }
+    //   agent_prompts: { task_1: { system_prompt } }
+    // Required fields surfaced by validator:
+    //   - llm_agent.agent_flow_type   (we use 'streaming')
+    //   - toolchain                   (pipeline declaration — sibling of tools_config)
+    //   - synthesizer.voice_id when provider=elevenlabs
+    //   - hangup_after_silence must be integer seconds (not float)
     return {
       agent_config: {
         agent_name: config.name,
@@ -191,19 +198,25 @@ export class BolnaProvider implements VoiceProvider {
         tasks: [
           {
             task_type: 'conversation',
+            toolchain: {
+              execution: 'parallel',
+              pipelines: [['transcriber', 'llm', 'synthesizer']],
+            },
             tools_config: {
               llm_agent: {
                 agent_type: 'simple_llm_agent',
+                agent_flow_type: 'streaming',
                 llm_config: {
                   provider: 'openai',
                   model: 'gpt-4.1-mini',
                   temperature: 0.1,
                 },
               },
-              synthesizer: {
-                provider: config.voice.provider === 'elevenlabs' ? 'elevenlabs' : 'polly',
-                ...(config.voice.voiceId ? { voice_id: config.voice.voiceId } : {}),
-              },
+              // Bolna splits voice into TWO required fields:
+              //   - voice: WHICH voice (id, name, model)
+              //   - synthesizer: HOW synthesis runs (provider, streaming, audio format)
+              voice: this.buildVoiceConfig(config),
+              synthesizer: this.buildSynthesizerConfig(config),
               transcriber: {
                 provider: 'deepgram',
                 model: 'nova-3',
@@ -215,7 +228,7 @@ export class BolnaProvider implements VoiceProvider {
               api_tools: null,
             },
             task_config: {
-              hangup_after_silence: config.endpointing.silenceMs / 1000,
+              hangup_after_silence: 15,
             },
           },
         ],
@@ -224,6 +237,41 @@ export class BolnaProvider implements VoiceProvider {
       agent_prompts: {
         task_1: { system_prompt: config.systemPrompt },
       },
+    }
+  }
+
+  /**
+   * Voice identity — what the agent sounds like.
+   * Three required fields per Bolna validator: voice_id, voice (name), model.
+   */
+  private buildVoiceConfig(config: AgentConfig): Record<string, unknown> {
+    if (config.voice.provider === 'elevenlabs') {
+      const voiceId = config.voice.voiceId ?? 'pNInz6obpgDQGcFmaJgB' // Adam, multilingual v2
+      return {
+        voice_id: voiceId,
+        voice: 'Adam',
+        model: 'eleven_multilingual_v2',
+      }
+    }
+    // Deepgram Aura — Asteria is a common default female voice
+    return {
+      voice_id: 'aura-asteria-en',
+      voice: 'asteria',
+      model: 'aura',
+    }
+  }
+
+  /**
+   * Synthesizer engine — provider + streaming/audio settings.
+   * Sibling field to `voice` in Bolna's tools_config schema.
+   */
+  private buildSynthesizerConfig(config: AgentConfig): Record<string, unknown> {
+    const provider = config.voice.provider === 'elevenlabs' ? 'elevenlabs' : 'deepgram'
+    return {
+      provider,
+      stream: true,
+      buffer_size: 100,
+      audio_format: 'wav',
     }
   }
 
