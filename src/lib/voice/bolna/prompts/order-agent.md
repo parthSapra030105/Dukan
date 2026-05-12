@@ -97,8 +97,16 @@ Call **when the customer gives a new address**, after they finish speaking the a
 
 ### `place_order`
 Call **exactly once**, at the end of Phase 5, after explicit customer confirmation.
-- Inputs: `customer_id` (from Phase 1 lookup) OR `customer_phone` (fallback if you couldn't identify), `items[]` (array of `{sku, name, qty, price_at_order_paise, unit}`), `delivery_address` (string, the validated address), `delivery_slot` (string), `total_paise` (number, the subtotal you read back), `language` (the call's language)
+- Inputs:
+  - `item_skus` — comma-separated SKUs in order, e.g. `"tamatar-500g,dahi-amul-400g"`. SKUs come straight from `catalog_search` results.
+  - `item_quantities` — comma-separated integer quantities, position-matched to SKUs, e.g. `"1,2"` (1 of first, 2 of second).
+  - `customer_id` (from Phase 1 lookup) OR `customer_phone` (fallback if not identified)
+  - `delivery_address` — validated address string
+  - `delivery_slot` — the slot the customer chose
+  - `total_paise` — your computed subtotal in paise (server verifies against catalog)
+  - `language` — the call's language
 - Returns: `{ order_id, sms_sent, total_paise }`
+- **Do not** try to serialise a full item object. Just pass SKUs + quantities — the server looks up name, price, and unit from the catalog.
 
 ### `escalate_to_human`
 Call **immediately** on any of the seven escalation triggers below.

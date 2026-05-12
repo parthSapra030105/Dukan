@@ -34,9 +34,64 @@ export async function POST(request: Request) {
   const v = await verifyToolCall(request)
   if (!v.ok) return v.response
 
-  // Accept items as a real array OR a JSON string (Bolna may send templated strings).
+  // NEW SCHEMA (preferred): item_skus + item_quantities as comma-separated strings.
+  // The LLM only needs to remember SKUs (from catalog_search) and quantities.
+  // We look up the rest (name, price, unit) authoritatively from our catalog.
+  //
+  // OLD SCHEMA (kept for backward-compat with curl testing): items as JSON-string array.
+  // This shape was fragile when Bolna's templating tried to substitute escaped JSON.
   let items: OrderItem[] = []
-  if (Array.isArray(v.body.items)) {
+
+  const skusRaw = v.body.item_skus
+  const qtysRaw = v.body.item_quantities
+
+  if (skusRaw && qtysRaw) {
+    // New path: look up each SKU server-side
+    const skus = String(skusRaw)
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean)
+    const qtys = String(qtysRaw)
+      .split(',')
+      .map(s => parseInt(s.trim(), 10) || 1)
+
+    if (skus.length === 0) {
+      return NextResponse.json({ error: 'item_skus_empty' }, { status: 400 })
+    }
+
+    const supabaseForLookup = getSupabaseAdmin()
+    const merchantIdForLookup = await getDemoMerchantId()
+    const { data: catalog } = await supabaseForLookup
+      .from('catalog_items')
+      .select('sku, name_default, price_paise, unit')
+      .eq('merchant_id', merchantIdForLookup)
+      .in('sku', skus)
+
+    if (!catalog || catalog.length === 0) {
+      return NextResponse.json(
+        { error: 'no_skus_matched_catalog', requested: skus },
+        { status: 400 },
+      )
+    }
+
+    const catalogMap = new Map(catalog.map(c => [c.sku, c]))
+    for (let i = 0; i < skus.length; i++) {
+      const sku = skus[i]
+      const qty = qtys[i] || 1
+      const item = catalogMap.get(sku)
+      if (!item) {
+        console.warn(`[place_order] SKU not in catalog, skipping: ${sku}`)
+        continue
+      }
+      items.push({
+        sku: item.sku,
+        name: item.name_default,
+        qty,
+        price_at_order_paise: item.price_paise,
+        unit: item.unit,
+      })
+    }
+  } else if (Array.isArray(v.body.items)) {
     items = v.body.items as OrderItem[]
   } else if (typeof v.body.items === 'string') {
     try {
@@ -49,6 +104,7 @@ export async function POST(request: Request) {
       )
     }
   }
+
   if (items.length === 0) {
     return NextResponse.json({ error: 'items_required' }, { status: 400 })
   }
