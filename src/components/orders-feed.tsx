@@ -9,6 +9,8 @@ interface OrdersFeedProps {
   merchantId: string
   /** Max cards to keep in the feed. */
   cap?: number
+  /** If set, ignore realtime arrivals that don't match this status. */
+  filterStatus?: string
 }
 
 /**
@@ -20,7 +22,7 @@ interface OrdersFeedProps {
  * Customer name / transcript snippet are not joined, so new realtime
  * arrivals show with fewer details until the page next re-renders.
  */
-export function OrdersFeed({ initialOrders, merchantId, cap = 6 }: OrdersFeedProps) {
+export function OrdersFeed({ initialOrders, merchantId, cap = 6, filterStatus }: OrdersFeedProps) {
   const [orders, setOrders] = useState<OrderCardData[]>(initialOrders)
   const [newIds, setNewIds] = useState<Set<string>>(new Set())
   const settleTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
@@ -52,8 +54,9 @@ export function OrdersFeed({ initialOrders, merchantId, cap = 6 }: OrdersFeedPro
             customer_phone: null,
             customer_snippet: null,
           }
+          // Filter check: skip arrivals that don't match the active filter
+          if (filterStatus && card.status !== filterStatus) return
           setOrders(prev => {
-            // de-dup just in case
             if (prev.some(o => o.id === card.id)) return prev
             return [card, ...prev].slice(0, cap)
           })
@@ -76,7 +79,7 @@ export function OrdersFeed({ initialOrders, merchantId, cap = 6 }: OrdersFeedPro
       settleTimers.current.forEach(t => clearTimeout(t))
       settleTimers.current.clear()
     }
-  }, [merchantId, cap])
+  }, [merchantId, cap, filterStatus])
 
   if (orders.length === 0) {
     return (
