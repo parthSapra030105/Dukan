@@ -54,23 +54,42 @@ export async function POST(request: Request) {
   const phone = normalisePhone(parsed.phone)
   const language = parsed.language ?? 'hi-IN'
 
-  // 1) Upsert customer by (merchant_id, phone)
-  const { data: customer, error: customerErr } = await supabase
+  // 1) Find-or-create customer by (merchant_id, phone). Selective update so a
+  //    blank Name field on resubmit doesn't blow away an existing name.
+  const { data: existing } = await supabase
     .from('customers')
-    .upsert(
-      {
+    .select('id, name, preferred_language')
+    .eq('merchant_id', merchantId)
+    .eq('phone', phone)
+    .maybeSingle()
+
+  const submittedName = parsed.name?.trim() || null
+
+  let customer: { id: string; name: string | null; preferred_language: string | null } | null = null
+  if (existing) {
+    const updateRow: Record<string, unknown> = { preferred_language: language }
+    if (submittedName) updateRow.name = submittedName
+    const { data: updated, error: updateErr } = await supabase
+      .from('customers')
+      .update(updateRow)
+      .eq('id', existing.id)
+      .select('id, name, preferred_language')
+      .single()
+    if (updateErr) console.warn('[dispatch-callback] customer update failed:', updateErr.message)
+    customer = updated ?? existing
+  } else {
+    const { data: inserted, error: insertErr } = await supabase
+      .from('customers')
+      .insert({
         merchant_id: merchantId,
         phone,
-        name: parsed.name?.trim() || null,
+        name: submittedName,
         preferred_language: language,
-      },
-      { onConflict: 'merchant_id,phone' },
-    )
-    .select('id, name, preferred_language')
-    .single()
-
-  if (customerErr || !customer) {
-    console.warn('[dispatch-callback] customer upsert failed:', customerErr?.message)
+      })
+      .select('id, name, preferred_language')
+      .single()
+    if (insertErr) console.warn('[dispatch-callback] customer insert failed:', insertErr.message)
+    customer = inserted ?? null
   }
 
   const customerId = customer?.id ?? null
