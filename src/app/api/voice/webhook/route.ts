@@ -54,19 +54,24 @@ export async function POST(request: Request) {
   }
   if (!callRowId) {
     // We've never seen this call. Create a row so we don't lose the data.
+    // user_data may be missing entirely (chat mode / direct dashboard dispatches),
+    // OR may carry merchant_id from /api/voice/dispatch-callback. Fall back to demo merchant.
     const userData = (raw.user_data ?? {}) as Record<string, unknown>
-    const merchantId = userData.merchant_id ? String(userData.merchant_id) : null
-    if (!merchantId) {
-      return NextResponse.json({ error: 'cannot_route_call', hint: 'missing merchant_id in user_data' }, { status: 400 })
+    let merchantId = userData.merchant_id ? String(userData.merchant_id) : null
+    if (!merchantId || merchantId.startsWith('%(')) {
+      // Chat mode / direct test from Bolna dashboard → no user_data injected.
+      // Fall back to the demo merchant so the call still gets recorded.
+      const { getDemoMerchantId } = await import('@/lib/merchant')
+      merchantId = await getDemoMerchantId()
     }
     const { data: created, error: createErr } = await supabase
       .from('calls')
       .insert({
         merchant_id: merchantId,
-        caller_phone: String(raw.recipient_phone_number ?? raw.from_phone_number ?? 'unknown'),
+        caller_phone: String(raw.recipient_phone_number ?? raw.from_phone_number ?? 'chat-test'),
         direction: 'outbound',
         provider: provider.name,
-        provider_call_id: event.callId,
+        provider_call_id: event.callId || null,
       })
       .select('id')
       .single()
