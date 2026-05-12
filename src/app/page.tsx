@@ -5,7 +5,17 @@ import { BrandMark } from "@/components/brand-mark";
 export default function Home() {
   return (
     <main className="min-h-screen bg-stone-50">
-      <div className="max-w-5xl mx-auto px-6 py-16 sm:py-24">
+      <div className="max-w-5xl mx-auto px-6 pt-6 pb-16 sm:pb-24">
+        {/* Top bar — sign-in link for reviewers */}
+        <div className="flex justify-end mb-10">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-600 hover:text-stone-900 bg-white border border-stone-200 rounded-lg px-3 py-1.5 hover:border-stone-300 transition-colors"
+          >
+            Operator sign in →
+          </Link>
+        </div>
+
         {/* Hero + callback form */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8 mb-12">
           <div>

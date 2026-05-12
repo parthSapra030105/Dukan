@@ -4,12 +4,17 @@ import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { getDemoMerchantId } from '@/lib/merchant'
 import { NavLinks } from './nav-links'
 import { BrandMark } from './brand-mark'
+import { LogoutButton } from './logout-button'
+
+interface NavProps {
+  userEmail?: string | null
+}
 
 /**
  * Top nav. Server component — fetches live badge counts for Orders (pending)
  * and Escalations (queued). Includes a "Live agent" indicator.
  */
-export async function Nav() {
+export async function Nav({ userEmail = null }: NavProps = {}) {
   // Best-effort badge counts. Don't block the nav if these fail.
   let pendingOrders = 0
   let queuedEscalations = 0
@@ -54,7 +59,11 @@ export async function Nav() {
           <NavLinks pendingOrders={pendingOrders} queuedEscalations={queuedEscalations} />
         </div>
 
-        <AgentStatus active={activeCallNow} />
+        <div className="flex items-center gap-3">
+          <AgentStatus active={activeCallNow} />
+          <div className="w-px h-6 bg-stone-200 hidden sm:block" />
+          <LogoutButton email={userEmail} />
+        </div>
       </div>
     </header>
   )
