@@ -210,9 +210,22 @@ export async function POST(request: Request) {
     .limit(1)
     .maybeSingle()
 
-  // call_id is a UUID FK to calls table. Accept only valid UUIDs that the LLM didn't hallucinate.
+  // call_id is a UUID FK to calls table. Accept only UUIDs that ACTUALLY EXIST.
+  // LLMs sometimes pass a hallucinated UUID (e.g. agent_id) which passes format
+  // validation but trips the FK at insert time → 409.
   const callIdRaw = v.body.call_id ? String(v.body.call_id).trim() : ''
-  const callIdToUse = !isPlaceholder(callIdRaw) && UUID_RX.test(callIdRaw) ? callIdRaw : null
+  let callIdToUse: string | null = null
+  if (!isPlaceholder(callIdRaw) && UUID_RX.test(callIdRaw)) {
+    const { data: callRow } = await supabase
+      .from('calls')
+      .select('id')
+      .eq('id', callIdRaw)
+      .maybeSingle()
+    callIdToUse = callRow?.id ?? null
+    if (!callIdToUse) {
+      console.warn(`[place_order] call_id ${callIdRaw.slice(0, 8)} is UUID-shaped but doesn't exist in calls — nulling`)
+    }
+  }
 
   // language and delivery_slot may also be placeholders
   const slotRaw = String(v.body.delivery_slot ?? '')
