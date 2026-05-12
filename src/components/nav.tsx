@@ -3,6 +3,7 @@ import { Mic } from 'lucide-react'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { getDemoMerchantId } from '@/lib/merchant'
 import { NavLinks } from './nav-links'
+import { BrandMark } from './brand-mark'
 
 /**
  * Top nav. Server component — fetches live badge counts for Orders (pending)
@@ -46,11 +47,8 @@ export async function Nav() {
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-stone-200">
       <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
         <div className="flex items-center gap-8">
-          <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-            <div className="w-7 h-7 rounded-md bg-rose-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">द</span>
-            </div>
-            <span className="font-semibold text-stone-900 tracking-tight">Dukan</span>
+          <Link href="/dashboard" aria-label="Dukan home">
+            <BrandMark size="sm" />
           </Link>
 
           <NavLinks pendingOrders={pendingOrders} queuedEscalations={queuedEscalations} />

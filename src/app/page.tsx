@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CallbackForm } from "./callback-form";
+import { BrandMark } from "@/components/brand-mark";
 
 export default function Home() {
   return (
@@ -11,8 +12,8 @@ export default function Home() {
             <div className="inline-block bg-rose-100 text-rose-700 text-xs font-medium px-2.5 py-1 rounded-full mb-4">
               Voice AI for neighbourhood retail
             </div>
-            <h1 className="text-4xl sm:text-5xl font-bold text-stone-900 leading-tight">
-              Dukan
+            <h1 className="leading-tight">
+              <BrandMark size="lg" />
             </h1>
             <p className="text-xl text-stone-700 mt-3 max-w-2xl">
               A voice agent that takes phone orders for neighbourhood supermarkets and kiranas — in Hindi or
