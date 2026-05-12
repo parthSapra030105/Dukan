@@ -22,11 +22,15 @@ const STOP_TOKENS = new Set([
   'a', 'an', 'the', 'of', 'for', 'and', 'or', 'with', 'please', 'some',
   'half', 'kg', 'kgs', 'gram', 'grams', 'g', 'ml', 'l', 'litre', 'litres', 'liter', 'liters',
   'pc', 'pcs', 'pack', 'packet', 'packets', 'box', 'boxes', 'bottle', 'bottles',
-  'one', 'two', 'three', 'four', 'five', 'six',
+  'one', 'two', 'three', 'four', 'five', 'six', 'dozen',
   // Hindi (romanised)
   'ek', 'do', 'teen', 'char', 'paanch', 'aadha', 'paav', 'pao',
-  'ka', 'ki', 'ke', 'me', 'mein', 'hai', 'chahiye', 'do na', 'dena',
-  'kilo', 'kilos',
+  'ka', 'ki', 'ke', 'me', 'mein', 'hai', 'hain', 'hu', 'hun', 'chahiye', 'dena',
+  'kilo', 'kilos', 'litar',
+  // Hindi units (Devanagari) — Deepgram hi-IN transcribes units in Devanagari too
+  'किलो', 'किलोग्राम', 'ग्राम', 'लीटर', 'मिलीलीटर', 'पैकेट', 'पीस', 'दर्जन',
+  'का', 'की', 'के', 'और', 'है', 'हैं', 'हूं', 'हूँ', 'चाहिए',
+  'एक', 'दो', 'तीन', 'चार', 'पांच', 'आधा', 'पाव',
 ])
 
 function tokenize(query: string): string[] {
