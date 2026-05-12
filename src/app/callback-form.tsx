@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react'
 export function CallbackForm() {
   const [phone, setPhone] = useState('')
   const [name, setName] = useState('')
+  const [address, setAddress] = useState('')
   const [language, setLanguage] = useState<'hi-IN' | 'en-IN'>('hi-IN')
   const [pending, startTransition] = useTransition()
   const [result, setResult] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
@@ -18,7 +19,12 @@ export function CallbackForm() {
     const res = await fetch('/api/voice/dispatch-callback', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: phone.trim(), name: name.trim() || undefined, language }),
+      body: JSON.stringify({
+        phone: phone.trim(),
+        name: name.trim() || undefined,
+        address: address.trim() || undefined,
+        language,
+      }),
     })
     const json = await res.json().catch(() => ({}))
     if (!res.ok) {
@@ -36,8 +42,8 @@ export function CallbackForm() {
       <div className="mb-4">
         <h2 className="text-base font-semibold text-stone-900">Request a callback</h2>
         <p className="text-xs text-stone-500 mt-1">
-          The agent will dial you immediately. <strong>Note:</strong> Bolna trial only calls verified numbers
-          (verify yours at platform.bolna.ai).
+          What you fill in here, the agent will already know when it dials. <strong>Note:</strong> on the
+          Bolna trial only verified numbers can be called (verify yours at platform.bolna.ai).
         </p>
       </div>
 
@@ -81,6 +87,22 @@ export function CallbackForm() {
               <option value="en-IN">English</option>
             </select>
           </div>
+        </div>
+
+        <div>
+          <label className="text-[11px] font-medium text-stone-500 uppercase tracking-wider mb-1 block">
+            Delivery address (optional)
+          </label>
+          <textarea
+            value={address}
+            onChange={e => setAddress(e.target.value)}
+            placeholder="Flat 502, Sapphire Heights, FC Road, Pune 411005"
+            rows={2}
+            className="w-full bg-white border border-stone-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 resize-none"
+          />
+          <p className="text-[10px] text-stone-500 mt-1">
+            Saved as your default address. The agent will confirm rather than ask for it.
+          </p>
         </div>
 
         <button

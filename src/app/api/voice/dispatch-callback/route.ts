@@ -9,21 +9,25 @@ export const runtime = 'nodejs'
 /**
  * Public endpoint: customer requests a callback via the homepage form.
  *
- * Body: { phone: E.164, language?: 'hi-IN' | 'en-IN', name?: string }
+ * Body: { phone: E.164, language?: 'hi-IN' | 'en-IN', name?: string, address?: string }
  * Returns: { ok, call_id }
  *
- * Triggers an outbound call via the configured voice provider. The agent
- * (configured separately, BOLNA_AGENT_ID) handles the conversation; our
- * webhook tool endpoints handle catalog / address / order placement.
+ * Pre-call upserts:
+ *   1. customers row (merchant_id + phone unique) — name, preferred_language
+ *   2. customer_addresses row (if address provided) — set as default
+ *   3. calls row linked to customer_id
  *
- * Trial constraint: on Bolna's trial plan, the recipient_phone_number
- * MUST be a verified number in the Bolna dashboard. The API will reject
- * unverified numbers with an error — we surface that error verbatim.
+ * The agent receives customer_id in user_data so lookup_customer becomes a
+ * context-fetch (saved addresses, last order) rather than identity discovery.
+ *
+ * Trial constraint: on Bolna's trial plan, the recipient_phone_number MUST be
+ * a verified number in the Bolna dashboard.
  */
 const BodySchema = z.object({
   phone: z.string().min(8).max(20),
   language: z.string().optional(),
   name: z.string().optional(),
+  address: z.string().optional(),
 })
 
 export async function POST(request: Request) {
@@ -37,21 +41,80 @@ export async function POST(request: Request) {
 
   const agentId = process.env.BOLNA_AGENT_ID
   if (!agentId) {
-    return NextResponse.json({ error: 'agent_not_configured', hint: 'set BOLNA_AGENT_ID in env' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'agent_not_configured', hint: 'set BOLNA_AGENT_ID in env' },
+      { status: 500 },
+    )
   }
 
   const provider = getVoiceProvider()
   const supabase = getSupabaseAdmin()
   const merchantId = await getDemoMerchantId()
 
-  // Normalise phone to E.164 — assume Indian by default if no leading +
   const phone = normalisePhone(parsed.phone)
+  const language = parsed.language ?? 'hi-IN'
 
-  // Pre-create a calls row so the agent can reference it before the webhook lands
+  // 1) Upsert customer by (merchant_id, phone)
+  const { data: customer, error: customerErr } = await supabase
+    .from('customers')
+    .upsert(
+      {
+        merchant_id: merchantId,
+        phone,
+        name: parsed.name?.trim() || null,
+        preferred_language: language,
+      },
+      { onConflict: 'merchant_id,phone' },
+    )
+    .select('id, name, preferred_language')
+    .single()
+
+  if (customerErr || !customer) {
+    console.warn('[dispatch-callback] customer upsert failed:', customerErr?.message)
+  }
+
+  const customerId = customer?.id ?? null
+
+  // 2) Optional address — dedupe by exact text, then make this one the default
+  const addressText = parsed.address?.trim()
+  if (addressText && customerId) {
+    // Reset other defaults for this customer
+    await supabase
+      .from('customer_addresses')
+      .update({ is_default: false })
+      .eq('customer_id', customerId)
+
+    const { data: existing } = await supabase
+      .from('customer_addresses')
+      .select('id')
+      .eq('customer_id', customerId)
+      .eq('full_text', addressText)
+      .maybeSingle()
+
+    if (existing) {
+      await supabase
+        .from('customer_addresses')
+        .update({ is_default: true })
+        .eq('id', existing.id)
+    } else {
+      const { error: addrErr } = await supabase.from('customer_addresses').insert({
+        customer_id: customerId,
+        label: 'home',
+        full_text: addressText,
+        is_default: true,
+      })
+      if (addrErr) {
+        console.warn('[dispatch-callback] address insert failed:', addrErr.message)
+      }
+    }
+  }
+
+  // 3) Create the calls row linked to the customer
   const { data: callRow, error: callErr } = await supabase
     .from('calls')
     .insert({
       merchant_id: merchantId,
+      customer_id: customerId,
       caller_phone: phone,
       direction: 'outbound',
       provider: provider.name,
@@ -60,24 +123,27 @@ export async function POST(request: Request) {
     .select('id')
     .single()
   if (callErr || !callRow) {
-    return NextResponse.json({ error: 'call_record_create_failed', detail: callErr?.message }, { status: 500 })
+    return NextResponse.json(
+      { error: 'call_record_create_failed', detail: callErr?.message },
+      { status: 500 },
+    )
   }
 
-  // Dispatch
+  // 4) Dispatch — agent receives customer_id, customer_name, etc. via user_data
   try {
     const { callId: providerCallId } = await provider.dispatchOutbound({
       agentId,
       to: phone,
       customerContext: {
-        call_id: callRow.id,                   // internal Dukan call row id (used by escalate_to_human)
-        caller_phone: phone,                   // templated into lookup_customer
+        call_id: callRow.id,                                           // internal call row id (for escalate_to_human)
+        caller_phone: phone,
         merchant_id: merchantId,
-        customer_name: parsed.name ?? null,
-        preferred_language: parsed.language ?? 'hi-IN',
+        customer_id: customerId,                                       // agent already knows who's calling
+        customer_name: customer?.name ?? parsed.name?.trim() ?? null,
+        preferred_language: customer?.preferred_language ?? language,
       },
     })
 
-    // Link provider's execution id back to our row
     await supabase
       .from('calls')
       .update({ provider_call_id: providerCallId })
@@ -87,7 +153,10 @@ export async function POST(request: Request) {
       ok: true,
       call_id: callRow.id,
       provider_call_id: providerCallId,
-      message: 'Calling you now — please answer.',
+      customer_id: customerId,
+      message: customer?.name
+        ? `Calling you now, ${customer.name.split(' ')[0]} — please answer.`
+        : 'Calling you now — please answer.',
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'dispatch_failed'
