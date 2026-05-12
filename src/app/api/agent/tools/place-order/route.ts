@@ -40,6 +40,9 @@ export async function POST(request: Request) {
   //
   // OLD SCHEMA (kept for backward-compat with curl testing): items as JSON-string array.
   // This shape was fragile when Bolna's templating tried to substitute escaped JSON.
+  const supabase = getSupabaseAdmin()
+  const merchantId = await getDemoMerchantId()
+
   let items: OrderItem[] = []
 
   const skusRaw = v.body.item_skus
@@ -59,12 +62,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'item_skus_empty' }, { status: 400 })
     }
 
-    const supabaseForLookup = getSupabaseAdmin()
-    const merchantIdForLookup = await getDemoMerchantId()
-    const { data: catalog } = await supabaseForLookup
+    const { data: catalog } = await supabase
       .from('catalog_items')
       .select('sku, name_default, price_paise, unit')
-      .eq('merchant_id', merchantIdForLookup)
+      .eq('merchant_id', merchantId)
       .in('sku', skus)
 
     if (!catalog || catalog.length === 0) {
@@ -113,23 +114,53 @@ export async function POST(request: Request) {
   const isPlaceholder = (s: unknown): boolean => {
     if (typeof s !== 'string') return false
     const t = s.trim()
-    return t === '' || t.startsWith('%(') || t === 'None' || t === 'null'
+    return t === '' || t.startsWith('%(') || t === 'None' || t === 'null' || t === 'undefined'
   }
-  const customerId = !isPlaceholder(v.body.customer_id) ? String(v.body.customer_id) : null
-  const customerPhone = !isPlaceholder(v.body.customer_phone) ? String(v.body.customer_phone) : null
+  const UUID_RX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+  // customer_id only counts if it's a real UUID. LLMs hallucinate strings here.
+  const rawCustomerId = String(v.body.customer_id ?? '').trim()
+  const customerId =
+    !isPlaceholder(rawCustomerId) && UUID_RX.test(rawCustomerId) ? rawCustomerId : null
+  const customerPhone = !isPlaceholder(v.body.customer_phone)
+    ? String(v.body.customer_phone).trim()
+    : null
 
   const deliveryAddress = String(v.body.delivery_address ?? '').trim()
   if (!deliveryAddress || isPlaceholder(deliveryAddress)) {
     return NextResponse.json({ error: 'delivery_address_required' }, { status: 400 })
   }
 
-  const supabase = getSupabaseAdmin()
-  const merchantId = await getDemoMerchantId()
+  // Debug: log inputs (truncated) so we can see what the LLM actually passes
+  console.log('[place_order] inputs', {
+    customer_id_raw: rawCustomerId.slice(0, 60),
+    customer_id_uuid_ok: customerId !== null,
+    customer_phone: customerPhone,
+    item_skus: String(v.body.item_skus ?? '').slice(0, 200),
+    item_quantities: String(v.body.item_quantities ?? '').slice(0, 200),
+    items_count: items.length,
+  })
 
   // Resolve customer
-  let resolvedCustomerId = customerId
+  let resolvedCustomerId: string | null = null
+
+  // Path 1: validated UUID + customer actually exists in DB
+  if (customerId) {
+    const { data: byId } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('id', customerId)
+      .eq('merchant_id', merchantId)
+      .maybeSingle()
+    if (byId) {
+      resolvedCustomerId = byId.id
+    } else {
+      console.warn(`[place_order] customer_id ${customerId.slice(0, 8)} not found in DB, falling through`)
+    }
+  }
+
+  // Path 2: phone given — look up or create
   if (!resolvedCustomerId && customerPhone) {
-    // Phone given — look up or create
     const { data: existing } = await supabase
       .from('customers')
       .select('id')
@@ -145,7 +176,7 @@ export async function POST(request: Request) {
         .select('id')
         .single()
       if (createErr || !created) {
-        return NextResponse.json({ error: 'customer_create_failed' }, { status: 500 })
+        return NextResponse.json({ error: 'customer_create_failed', detail: createErr?.message }, { status: 500 })
       }
       resolvedCustomerId = created.id
     }
@@ -179,9 +210,9 @@ export async function POST(request: Request) {
     .limit(1)
     .maybeSingle()
 
-  // call_id may be an unsubstituted Bolna template in chat mode — treat as null in that case
-  const callIdRaw = v.body.call_id ? String(v.body.call_id) : ''
-  const callIdToUse = isPlaceholder(callIdRaw) ? null : callIdRaw
+  // call_id is a UUID FK to calls table. Accept only valid UUIDs that the LLM didn't hallucinate.
+  const callIdRaw = v.body.call_id ? String(v.body.call_id).trim() : ''
+  const callIdToUse = !isPlaceholder(callIdRaw) && UUID_RX.test(callIdRaw) ? callIdRaw : null
 
   // language and delivery_slot may also be placeholders
   const slotRaw = String(v.body.delivery_slot ?? '')
