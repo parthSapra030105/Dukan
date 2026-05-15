@@ -21,27 +21,27 @@ const HEADERS = {
 const EXPECTED_TOOLS = [
   {
     name: 'lookup_customer',
-    url: 'https://dukan-bice.vercel.app/api/agent/tools/lookup-customer',
+    url: 'https://dukan.parthsapra.me/api/agent/tools/lookup-customer',
     required: ['phone'],
   },
   {
     name: 'catalog_search',
-    url: 'https://dukan-bice.vercel.app/api/agent/tools/catalog-search',
+    url: 'https://dukan.parthsapra.me/api/agent/tools/catalog-search',
     required: ['query', 'language'],
   },
   {
     name: 'validate_address',
-    url: 'https://dukan-bice.vercel.app/api/agent/tools/validate-address',
+    url: 'https://dukan.parthsapra.me/api/agent/tools/validate-address',
     required: ['text'],
   },
   {
     name: 'place_order',
-    url: 'https://dukan-bice.vercel.app/api/agent/tools/place-order',
+    url: 'https://dukan.parthsapra.me/api/agent/tools/place-order',
     required: ['call_id', 'item_skus', 'item_quantities', 'delivery_address', 'delivery_slot', 'total_paise', 'language'],
   },
   {
     name: 'escalate_to_human',
-    url: 'https://dukan-bice.vercel.app/api/agent/tools/escalate',
+    url: 'https://dukan.parthsapra.me/api/agent/tools/escalate',
     required: ['call_id', 'reason', 'transcript_so_far'],
   },
 ]

@@ -6,7 +6,7 @@
 
 ## Links
 
-- **Deployed app:** https://dukan-bice.vercel.app
+- **Deployed app:** https://dukan.parthsapra.me
 - **GitHub:** https://github.com/<your-handle>/dukan
 - **Demo credentials** (prefilled on `/login`):
   - Email: `admin@dukan.demo`
@@ -36,7 +36,7 @@ The architecture is **provider-agnostic** — the voice backend sits behind a `V
 
 ## How to try it yourself
 
-1. Open https://dukan-bice.vercel.app
+1. Open https://dukan.parthsapra.me
 2. Submit the callback form with a **Bolna-verified phone number** (Bolna trial limitation)
 3. Pick up; place an order. Suggested: "Ek kilo aloo, ek Parle-G."
 4. Sign in to the dashboard at `/login` (credentials prefilled)

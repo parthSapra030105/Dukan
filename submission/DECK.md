@@ -17,7 +17,7 @@ The द in Dukan: a kirana's voice operator, replaced.
 —
 
 Parth Sapra · Bolna Full-Stack Engineer assignment · May 2026
-Live: **dukan-bice.vercel.app** · Repo: **github.com/<your-handle>/dukan**
+Live: **dukan.parthsapra.me** · Repo: **github.com/<your-handle>/dukan**
 
 ---
 

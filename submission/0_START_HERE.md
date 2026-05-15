@@ -6,7 +6,7 @@
 
 ## 🚀 Live demo
 
-**App:** https://dukan-bice.vercel.app
+**App:** https://dukan.parthsapra.me
 **Operator sign-in:** top-right of the homepage
 **Demo credentials** (prefilled at `/login`):
 - Email: `admin@dukan.demo`
@@ -43,7 +43,7 @@ I'm a full-stack engineer based in Pune. I built Dukan solo over ~14 hours for t
 
 If you want to try the agent yourself:
 
-1. Open https://dukan-bice.vercel.app
+1. Open https://dukan.parthsapra.me
 2. Submit the callback form with a **Bolna-verified phone number** (trial limitation — sorry!)
 3. Say "Ek kilo aloo, ek Parle-G"
 4. Sign in to the dashboard → watch the order land on `/dashboard` in realtime
