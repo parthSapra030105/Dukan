@@ -29,7 +29,7 @@ export function AgentHero({ snapshot, toolCount }: AgentHeroProps) {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
           </span>
-          Live on Bolna
+          Live
         </span>
         <code className="text-[10px] font-mono text-stone-500 bg-white border border-stone-200 px-1.5 py-0.5 rounded">
           agent_id · {agentId.slice(0, 8)}…
@@ -91,8 +91,8 @@ function NotDeployedBanner({ reason }: { reason: string }) {
         <div className="min-w-0">
           <p className="text-sm font-semibold text-stone-900">Agent not deployed</p>
           <p className="text-xs text-stone-700 mt-0.5">
-            Couldn&apos;t fetch the live agent from Bolna. The architecture, tools, and system prompt below
-            are read from the local source of truth.
+            Couldn&apos;t fetch the live agent from the voice provider. The architecture, tools, and
+            system prompt below are read from the local source of truth.
           </p>
           <code className="inline-block mt-2 text-[10px] font-mono text-amber-900 bg-amber-100 border border-amber-200 px-2 py-1 rounded">
             {reason}

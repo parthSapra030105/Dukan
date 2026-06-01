@@ -42,8 +42,8 @@ export function CallbackForm() {
       <div className="mb-4">
         <h2 className="text-base font-semibold text-stone-900">Request a callback</h2>
         <p className="text-xs text-stone-500 mt-1">
-          What you fill in here, the agent will already know when it dials. <strong>Note:</strong> on the
-          Bolna trial only verified numbers can be called (verify yours at platform.bolna.ai).
+          What you fill in here, the agent will already know when it dials. <strong>Note:</strong> during
+          the trial only pre-verified numbers can be called.
         </p>
       </div>
 

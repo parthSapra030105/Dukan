@@ -62,7 +62,7 @@ export default function Home() {
           </h2>
           <ol className="space-y-2.5 text-sm text-stone-700">
             <Step n={1}>
-              Customer dials the store number — Bolna AI routes to the Dukan agent.
+              Customer dials the store number — the voice layer routes the call to the Dukan agent.
             </Step>
             <Step n={2}>
               Agent looks up the caller&apos;s phone in the merchant database. Greets returning customers
@@ -94,12 +94,12 @@ export default function Home() {
 
         {/* Architecture note */}
         <section className="bg-stone-100 border border-stone-200 rounded-xl p-5 text-sm text-stone-600">
-          <p className="font-medium text-stone-900 mb-1">Built on Bolna AI — provider-agnostic by design.</p>
+          <p className="font-medium text-stone-900 mb-1">Provider-agnostic voice layer by design.</p>
           <p>
             The voice layer sits behind a{" "}
             <code className="bg-white px-1.5 py-0.5 rounded text-xs">VoiceProvider</code> interface with
-            adapters for Bolna (default), Vapi, and a custom ElevenLabs + Deepgram + LLM stack. Swapping
-            providers is one env var.
+            swappable adapters — a hosted voice-AI provider by default, plus a custom ElevenLabs + Deepgram
+            + LLM stack. Swapping providers is one env var.
           </p>
         </section>
 
@@ -109,15 +109,6 @@ export default function Home() {
             Built by{" "}
             <a href="https://parthsapra.me" className="text-rose-600 hover:underline">
               Parth Sapra
-            </a>{" "}
-            · Full-stack engineer assignment for{" "}
-            <a
-              href="https://bolna.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-rose-600 hover:underline"
-            >
-              Bolna AI
             </a>
           </p>
         </footer>
