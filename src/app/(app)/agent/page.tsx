@@ -93,7 +93,7 @@ export default async function AgentPage() {
       </section>
 
       <section className="mb-12">
-        <SectionHeader title="Try the agent" right={<span>Bolna trial · verified numbers only</span>} />
+        <SectionHeader title="Try the agent" right={<span>Trial mode · verified numbers only</span>} />
         <div className="max-w-md">
           <CallbackForm />
         </div>
@@ -117,7 +117,7 @@ function SyncSummary({
     return (
       <span className="inline-flex items-center gap-1 text-emerald-700">
         <CheckCircle2 className="w-3 h-3" />
-        {synced}/{total} synced with Bolna
+        {synced}/{total} synced with provider
       </span>
     )
   }
