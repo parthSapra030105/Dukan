@@ -71,7 +71,7 @@ function SyncBadge({ sync }: { sync: ToolSyncState }) {
     return (
       <span
         className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5"
-        title="Local catalog matches deployed Bolna agent"
+        title="Local catalog matches deployed agent"
       >
         <CheckCircle2 className="w-3 h-3" />
         Synced

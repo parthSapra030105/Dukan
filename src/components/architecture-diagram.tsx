@@ -17,7 +17,7 @@ const PROVIDERS: Array<{
 }> = [
   {
     key: 'bolna',
-    label: 'Bolna',
+    label: 'Hosted voice AI',
     status: 'active',
     subtitle: 'GPT-4.1-mini · Deepgram · ElevenLabs',
   },
@@ -98,9 +98,8 @@ export function ArchitectureDiagram() {
       <p className="text-xs text-stone-500 mt-5 pt-4 border-t border-stone-100 leading-relaxed">
         Provider is selected by the{' '}
         <code className="bg-stone-100 px-1.5 py-0.5 rounded font-mono text-[10px]">VOICE_PROVIDER</code>{' '}
-        env var (default{' '}
-        <code className="bg-stone-100 px-1.5 py-0.5 rounded font-mono text-[10px]">bolna</code>). Swap to
-        Vapi or a custom stack without touching application code — only the adapter needs to change.
+        env var. Swap to Vapi or a custom stack without touching application code — only the adapter
+        needs to change.
       </p>
     </div>
   )
